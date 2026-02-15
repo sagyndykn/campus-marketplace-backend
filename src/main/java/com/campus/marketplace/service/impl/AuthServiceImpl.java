@@ -11,6 +11,7 @@ import com.campus.marketplace.security.JwtService;
 import com.campus.marketplace.service.AuthService;
 import com.campus.marketplace.service.OtpService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final OtpService otpService;
     private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void register(RegisterRequest request) {
@@ -34,6 +36,7 @@ public class AuthServiceImpl implements AuthService {
                 .email(request.getEmail())
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.USER)
                 .isVerified(false)
                 .isActive(true)
@@ -46,7 +49,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void login(LoginRequest request) {
+    public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
 
@@ -54,7 +57,12 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Аккаунт заблокирован");
         }
 
-        otpService.generateAndSend(request.getEmail());
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Неверный пароль");
+        }
+
+        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, user.getEmail(), user.getRole().name());
     }
 
     @Override

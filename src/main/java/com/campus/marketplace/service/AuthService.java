@@ -7,6 +7,6 @@ import com.campus.marketplace.dto.response.AuthResponse;
 
 public interface AuthService {
     void register(RegisterRequest request);
-    void login(LoginRequest request);
+    AuthResponse login(LoginRequest request);
     AuthResponse verifyOtp(VerifyOtpRequest request);
 }

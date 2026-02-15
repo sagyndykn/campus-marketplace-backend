@@ -10,4 +10,7 @@ public class LoginRequest {
     @NotBlank
     @Pattern(regexp = "^[a-zA-Z0-9._%+-]+@sdu\\.edu\\.kz$", message = "Email должен оканчиваться на @sdu.edu.kz")
     private String email;
+
+    @NotBlank
+    private String password;
 }
