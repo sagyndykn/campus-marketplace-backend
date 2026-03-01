@@ -4,6 +4,7 @@ import com.campus.marketplace.dto.request.CreateListingRequest;
 import com.campus.marketplace.dto.request.UpdateListingRequest;
 import com.campus.marketplace.dto.response.ListingResponse;
 import com.campus.marketplace.service.ListingService;
+import com.campus.marketplace.service.impl.ListingServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -20,6 +22,7 @@ import java.util.List;
 public class ListingController {
 
     private final ListingService listingService;
+    private final ListingServiceImpl listingServiceImpl;
 
     @PostMapping
     public ResponseEntity<ListingResponse> create(
@@ -67,5 +70,21 @@ public class ListingController {
             @PathVariable String id) {
         listingService.delete(email, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/photos")
+    public ResponseEntity<ListingResponse> uploadPhotos(
+            @AuthenticationPrincipal String email,
+            @PathVariable String id,
+            @RequestParam("files") List<MultipartFile> files) {
+        return ResponseEntity.ok(listingServiceImpl.uploadPhotos(email, id, files));
+    }
+
+    @DeleteMapping("/{id}/photos")
+    public ResponseEntity<ListingResponse> deletePhoto(
+            @AuthenticationPrincipal String email,
+            @PathVariable String id,
+            @RequestParam("url") String photoUrl) {
+        return ResponseEntity.ok(listingServiceImpl.deletePhoto(email, id, photoUrl));
     }
 }

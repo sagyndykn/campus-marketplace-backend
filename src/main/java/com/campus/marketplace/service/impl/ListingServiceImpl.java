@@ -10,6 +10,7 @@ import com.campus.marketplace.model.User;
 import com.campus.marketplace.repository.ListingRepository;
 import com.campus.marketplace.repository.UserRepository;
 import com.campus.marketplace.service.ListingService;
+import com.campus.marketplace.service.MinioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -21,6 +22,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -30,6 +34,7 @@ public class ListingServiceImpl implements ListingService {
     private final ListingRepository listingRepository;
     private final UserRepository userRepository;
     private final MongoTemplate mongoTemplate;
+    private final MinioService minioService;
 
     @Override
     public ListingResponse create(String sellerEmail, CreateListingRequest request) {
@@ -134,6 +139,47 @@ public class ListingServiceImpl implements ListingService {
                 .stream().map(this::toResponse).toList();
     }
 
+    public ListingResponse uploadPhotos(String sellerEmail, String id, List<MultipartFile> files) {
+        User seller = getUser(sellerEmail);
+        Listing listing = findListing(id);
+
+        if (!listing.getSellerId().equals(seller.getId())) {
+            throw new RuntimeException("Нет доступа к этому объявлению");
+        }
+
+        List<String> existing = listing.getPhotoUrls() == null ? new ArrayList<>() : listing.getPhotoUrls();
+        if (existing.size() + files.size() > 5) {
+            throw new RuntimeException("Максимум 5 фото на объявление (уже загружено: " + existing.size() + ")");
+        }
+
+        List<String> newUrls = files.stream().map(minioService::upload).toList();
+        existing.addAll(newUrls);
+        listing.setPhotoUrls(existing);
+        listing.setUpdatedAt(LocalDateTime.now());
+
+        return toResponse(listingRepository.save(listing));
+    }
+
+    public ListingResponse deletePhoto(String sellerEmail, String id, String photoUrl) {
+        User seller = getUser(sellerEmail);
+        Listing listing = findListing(id);
+
+        if (!listing.getSellerId().equals(seller.getId())) {
+            throw new RuntimeException("Нет доступа к этому объявлению");
+        }
+
+        List<String> photos = new ArrayList<>(listing.getPhotoUrls());
+        if (!photos.remove(photoUrl)) {
+            throw new RuntimeException("Фото не найдено");
+        }
+
+        minioService.delete(photoUrl);
+        listing.setPhotoUrls(photos);
+        listing.setUpdatedAt(LocalDateTime.now());
+
+        return toResponse(listingRepository.save(listing));
+    }
+
     // --- helpers ---
 
     private User getUser(String email) {
@@ -157,6 +203,7 @@ public class ListingServiceImpl implements ListingService {
                 .sellerId(listing.getSellerId())
                 .sellerName(listing.getSellerName())
                 .sellerAvatarUrl(listing.getSellerAvatarUrl())
+                .photoUrls(listing.getPhotoUrls() != null ? listing.getPhotoUrls() : new ArrayList<>())
                 .status(listing.getStatus())
                 .createdAt(listing.getCreatedAt())
                 .build();

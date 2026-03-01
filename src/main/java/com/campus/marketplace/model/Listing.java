@@ -7,6 +7,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,6 +29,9 @@ public class Listing {
     private String sellerId;
     private String sellerName;
     private String sellerAvatarUrl;
+
+    @Builder.Default
+    private List<String> photoUrls = new ArrayList<>();
 
     @Builder.Default
     private ListingStatus status = ListingStatus.ACTIVE;

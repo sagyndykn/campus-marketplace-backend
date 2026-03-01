@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -22,6 +23,7 @@ public class ListingResponse {
     private String sellerName;
     private String sellerAvatarUrl;
 
+    private List<String> photoUrls;
     private ListingStatus status;
     private LocalDateTime createdAt;
 }
