@@ -52,14 +52,14 @@ public class MinioServiceImpl implements MinioService {
     }
 
     @Override
-    public String upload(MultipartFile file) {
+    public String upload(MultipartFile file, String folder) {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new RuntimeException("Только изображения разрешены (JPEG, PNG, WEBP)");
         }
 
         String ext = getExtension(file.getOriginalFilename());
-        String objectName = "photos/" + UUID.randomUUID() + ext;
+        String objectName = folder + "/" + UUID.randomUUID() + ext;
 
         try {
             minioClient.putObject(PutObjectArgs.builder()

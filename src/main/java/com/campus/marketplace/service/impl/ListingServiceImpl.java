@@ -152,7 +152,7 @@ public class ListingServiceImpl implements ListingService {
             throw new RuntimeException("Максимум 5 фото на объявление (уже загружено: " + existing.size() + ")");
         }
 
-        List<String> newUrls = files.stream().map(minioService::upload).toList();
+        List<String> newUrls = files.stream().map(f -> minioService.upload(f, "photos")).toList();
         existing.addAll(newUrls);
         listing.setPhotoUrls(existing);
         listing.setUpdatedAt(LocalDateTime.now());
