@@ -1,5 +1,6 @@
 package com.campus.marketplace.controller;
 
+import com.campus.marketplace.dto.request.UpdateProfileRequest;
 import com.campus.marketplace.dto.response.UserResponse;
 import com.campus.marketplace.model.User;
 import com.campus.marketplace.repository.UserRepository;
@@ -23,6 +24,29 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getMe(@AuthenticationPrincipal String email) {
         User user = getUser(email);
+        return ResponseEntity.ok(toResponse(user));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserResponse> updateProfile(
+            @AuthenticationPrincipal String email,
+            @RequestBody UpdateProfileRequest request) {
+
+        User user = getUser(email);
+
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        return ResponseEntity.ok(toResponse(user));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getById(@PathVariable String id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
         return ResponseEntity.ok(toResponse(user));
     }
 
@@ -58,6 +82,7 @@ public class UserController {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .avatarUrl(user.getAvatarUrl())
+                .phone(user.getPhone())
                 .role(user.getRole().name())
                 .isVerified(user.isVerified())
                 .build();

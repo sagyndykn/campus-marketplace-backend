@@ -12,6 +12,7 @@ public class UserResponse {
     private String firstName;
     private String lastName;
     private String avatarUrl;
+    private String phone;
     private String role;
     private boolean isVerified;
 }
