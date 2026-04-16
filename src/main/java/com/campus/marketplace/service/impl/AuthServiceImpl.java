@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
-        return new AuthResponse(token, user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
     }
 
     @Override
@@ -89,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
-        return new AuthResponse(token, user.getEmail(), user.getRole().name());
+        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
     }
 
     @Override
