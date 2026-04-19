@@ -4,6 +4,7 @@ import com.campus.marketplace.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,6 +22,23 @@ public class EmailServiceImpl implements EmailService {
                 "Ваш код подтверждения: " + otp + "\n\n" +
                         "Код действителен 2 минуты.\n" +
                         "Если вы не запрашивали код — проигнорируйте это письмо."
+        );
+        mailSender.send(message);
+    }
+
+    @Override
+    @Async
+    public void sendNewMessage(String to, String senderName, String preview) {
+        String shortPreview = preview.length() > 100 ? preview.substring(0, 100) + "..." : preview;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Новое сообщение от " + senderName + " — Campus Marketplace");
+        message.setText(
+                senderName + " написал(а) вам:\n\n" +
+                        "\"" + shortPreview + "\"\n\n" +
+                        "Откройте приложение Campus Marketplace, чтобы ответить.\n\n" +
+                        "— Campus Marketplace"
         );
         mailSender.send(message);
     }

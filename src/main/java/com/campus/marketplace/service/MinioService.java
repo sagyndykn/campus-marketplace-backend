@@ -6,5 +6,7 @@ public interface MinioService {
 
     String upload(MultipartFile file, String folder);
 
+    String uploadMedia(MultipartFile file, String folder);
+
     void delete(String objectName);
 }

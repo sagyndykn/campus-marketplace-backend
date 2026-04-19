@@ -6,12 +6,14 @@ import com.campus.marketplace.model.User;
 import com.campus.marketplace.repository.UserRepository;
 import com.campus.marketplace.service.MinioService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/users")
@@ -41,6 +43,24 @@ public class UserController {
         userRepository.save(user);
 
         return ResponseEntity.ok(toResponse(user));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<UserResponse>> search(
+            @AuthenticationPrincipal String email,
+            @RequestParam String q) {
+        if (q == null || q.isBlank() || q.length() < 1) {
+            return ResponseEntity.ok(List.of());
+        }
+        User me = getUser(email);
+        String escaped = q.replaceAll("[\\[\\](){}.*+?^$|\\\\]", "\\\\$0");
+        List<UserResponse> results = userRepository
+                .searchUsers(escaped, PageRequest.of(0, 10))
+                .stream()
+                .filter(u -> !u.getId().equals(me.getId()))
+                .map(this::toResponse)
+                .toList();
+        return ResponseEntity.ok(results);
     }
 
     @GetMapping("/{id}")
