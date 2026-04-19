@@ -5,12 +5,14 @@ import io.minio.*;
 import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MinioServiceImpl implements MinioService {
@@ -22,6 +24,10 @@ public class MinioServiceImpl implements MinioService {
 
     @Value("${minio.endpoint}")
     private String endpoint;
+
+    // Public base URL for generated file links (differs from endpoint in production)
+    @Value("${minio.public-url}")
+    private String publicUrl;
 
     @PostConstruct
     public void initBucket() {
@@ -47,7 +53,7 @@ public class MinioServiceImpl implements MinioService {
                         .build());
             }
         } catch (Exception e) {
-            throw new RuntimeException("MinIO bucket initialization failed: " + e.getMessage(), e);
+            log.warn("MinIO unavailable, file upload disabled: {}", e.getMessage());
         }
     }
 
@@ -72,13 +78,38 @@ public class MinioServiceImpl implements MinioService {
             throw new RuntimeException("Ошибка загрузки файла: " + e.getMessage(), e);
         }
 
-        return endpoint + "/" + bucket + "/" + objectName;
+        return publicUrl + "/" + bucket + "/" + objectName;
+    }
+
+    @Override
+    public String uploadMedia(MultipartFile file, String folder) {
+        String contentType = file.getContentType();
+        if (contentType == null ||
+                (!contentType.startsWith("image/") && !contentType.startsWith("video/"))) {
+            throw new RuntimeException("Разрешены только изображения и видео");
+        }
+
+        String ext = getExtension(file.getOriginalFilename());
+        String objectName = folder + "/" + UUID.randomUUID() + ext;
+
+        try {
+            minioClient.putObject(PutObjectArgs.builder()
+                    .bucket(bucket)
+                    .object(objectName)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .contentType(contentType)
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка загрузки файла: " + e.getMessage(), e);
+        }
+
+        return publicUrl + "/" + bucket + "/" + objectName;
     }
 
     @Override
     public void delete(String url) {
-        // extract objectName from full URL: http://localhost:9000/listings/photos/uuid.jpg
-        String objectName = url.replace(endpoint + "/" + bucket + "/", "");
+        // strip public base URL to get the object path
+        String objectName = url.replace(publicUrl + "/" + bucket + "/", "");
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()
                     .bucket(bucket)
