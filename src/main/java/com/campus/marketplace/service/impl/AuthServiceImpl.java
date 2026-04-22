@@ -12,11 +12,13 @@ import com.campus.marketplace.security.JwtService;
 import com.campus.marketplace.service.AuthService;
 import com.campus.marketplace.service.OtpService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -29,11 +31,14 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final StringRedisTemplate redisTemplate;
 
+    @Value("${jwt.refresh-expiration}")
+    private long refreshExpiration;
+
     private static final String BLACKLIST_PREFIX = "blacklist:";
+    private static final String REFRESH_PREFIX = "refresh:";
 
     @Override
     public void register(RegisterRequest request) {
-
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Пользователь с таким email уже существует");
         }
@@ -67,8 +72,7 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Неверный пароль");
         }
 
-        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
+        return buildAuthResponse(user);
     }
 
     @Override
@@ -88,8 +92,38 @@ public class AuthServiceImpl implements AuthService {
             userRepository.save(user);
         }
 
-        String token = jwtService.generateToken(user.getEmail(), user.getRole().name());
-        return new AuthResponse(token, user.getId(), user.getEmail(), user.getRole().name());
+        return buildAuthResponse(user);
+    }
+
+    @Override
+    public AuthResponse refresh(String refreshToken) {
+        String email = redisTemplate.opsForValue().get(REFRESH_PREFIX + refreshToken);
+        if (email == null) {
+            throw new RuntimeException("Refresh token не найден или истёк");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+
+        if (!user.isActive()) {
+            throw new RuntimeException("Аккаунт заблокирован");
+        }
+
+        redisTemplate.delete(REFRESH_PREFIX + refreshToken);
+        return buildAuthResponse(user);
+    }
+
+    @Override
+    public void logout(String accessToken, String refreshToken) {
+        if (accessToken != null && jwtService.isTokenValid(accessToken)) {
+            long ttl = jwtService.getExpirationDate(accessToken).getTime() - System.currentTimeMillis();
+            if (ttl > 0) {
+                redisTemplate.opsForValue().set(BLACKLIST_PREFIX + accessToken, "1", ttl, TimeUnit.MILLISECONDS);
+            }
+        }
+        if (refreshToken != null) {
+            redisTemplate.delete(REFRESH_PREFIX + refreshToken);
+        }
     }
 
     @Override
@@ -104,11 +138,15 @@ public class AuthServiceImpl implements AuthService {
         otpService.generateAndSend(request.getEmail());
     }
 
-    @Override
-    public void logout(String token) {
-        long ttl = jwtService.getExpirationDate(token).getTime() - System.currentTimeMillis();
-        if (ttl > 0) {
-            redisTemplate.opsForValue().set(BLACKLIST_PREFIX + token, "1", ttl, TimeUnit.MILLISECONDS);
-        }
+    private AuthResponse buildAuthResponse(User user) {
+        String accessToken = jwtService.generateToken(user.getEmail(), user.getRole().name());
+        String refreshToken = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(
+                REFRESH_PREFIX + refreshToken,
+                user.getEmail(),
+                refreshExpiration,
+                TimeUnit.MILLISECONDS
+        );
+        return new AuthResponse(accessToken, refreshToken, user.getId(), user.getEmail(), user.getRole().name());
     }
 }
