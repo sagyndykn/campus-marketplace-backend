@@ -9,6 +9,5 @@ public class StartConversationRequest {
     @NotBlank
     private String sellerId;
 
-    // null = direct user-to-user chat (no listing)
     private String listingId;
 }

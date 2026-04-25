@@ -19,7 +19,6 @@ public class PresenceService {
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    // set of online user emails
     private final Set<String> onlineEmails = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public void connect(String email) {

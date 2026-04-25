@@ -11,7 +11,6 @@ public class ChatMessageRequest {
     @NotBlank
     private String conversationId;
 
-    // nullable — message may contain only media
     private String content;
 
     private List<String> mediaUrls;
