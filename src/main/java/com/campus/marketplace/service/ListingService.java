@@ -25,4 +25,12 @@ public interface ListingService {
     void delete(String sellerEmail, String id);
 
     java.util.List<ListingResponse> getMyListings(String sellerEmail);
+
+    ListingResponse addFavorite(String email, String listingId);
+
+    void removeFavorite(String email, String listingId);
+
+    void clearFavorites(String email);
+
+    java.util.List<ListingResponse> getFavorites(String email);
 }

@@ -26,4 +26,5 @@ public class ListingResponse {
     private List<String> photoUrls;
     private ListingStatus status;
     private LocalDateTime createdAt;
+    private boolean favorited;
 }

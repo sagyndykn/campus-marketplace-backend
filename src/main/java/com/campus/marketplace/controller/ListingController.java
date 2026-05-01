@@ -72,6 +72,30 @@ public class ListingController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/favorites")
+    public ResponseEntity<List<ListingResponse>> getFavorites(@AuthenticationPrincipal String email) {
+        return ResponseEntity.ok(listingService.getFavorites(email));
+    }
+
+    @DeleteMapping("/favorites")
+    public ResponseEntity<Void> clearFavorites(@AuthenticationPrincipal String email) {
+        listingService.clearFavorites(email);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/favorite")
+    public ResponseEntity<ListingResponse> addFavorite(
+            @AuthenticationPrincipal String email, @PathVariable String id) {
+        return ResponseEntity.ok(listingService.addFavorite(email, id));
+    }
+
+    @DeleteMapping("/{id}/favorite")
+    public ResponseEntity<Void> removeFavorite(
+            @AuthenticationPrincipal String email, @PathVariable String id) {
+        listingService.removeFavorite(email, id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/photos")
     public ResponseEntity<ListingResponse> uploadPhotos(
             @AuthenticationPrincipal String email,

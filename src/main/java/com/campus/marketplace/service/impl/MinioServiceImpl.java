@@ -25,7 +25,6 @@ public class MinioServiceImpl implements MinioService {
     @Value("${minio.endpoint}")
     private String endpoint;
 
-    // Public base URL for generated file links (differs from endpoint in production)
     @Value("${minio.public-url}")
     private String publicUrl;
 
@@ -35,7 +34,6 @@ public class MinioServiceImpl implements MinioService {
             boolean exists = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build());
             if (!exists) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-                // public read policy
                 String policy = """
                         {
                           "Version":"2012-10-17",
@@ -108,7 +106,6 @@ public class MinioServiceImpl implements MinioService {
 
     @Override
     public void delete(String url) {
-        // strip public base URL to get the object path
         String objectName = url.replace(publicUrl + "/" + bucket + "/", "");
         try {
             minioClient.removeObject(RemoveObjectArgs.builder()

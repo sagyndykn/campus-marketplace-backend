@@ -32,4 +32,7 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastSeenAt;
+
+    @Builder.Default
+    private java.util.Set<String> favoriteListingIds = new java.util.HashSet<>();
 }

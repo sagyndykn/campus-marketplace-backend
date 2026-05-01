@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -91,7 +93,8 @@ public class ListingServiceImpl implements ListingService {
         List<Listing> listings = mongoTemplate.find(query, Listing.class);
         long total = mongoTemplate.count(countQuery, Listing.class);
 
-        List<ListingResponse> responses = listings.stream().map(this::toResponse).toList();
+        Set<String> favIds = currentUser.getFavoriteListingIds();
+        List<ListingResponse> responses = listings.stream().map(l -> toResponse(l, favIds)).toList();
         return new PageImpl<>(responses, pageable, total);
     }
 
@@ -135,8 +138,45 @@ public class ListingServiceImpl implements ListingService {
     @Override
     public List<ListingResponse> getMyListings(String sellerEmail) {
         User seller = getUser(sellerEmail);
+        Set<String> favIds = seller.getFavoriteListingIds();
         return listingRepository.findBySellerIdOrderByCreatedAtDesc(seller.getId())
-                .stream().map(this::toResponse).toList();
+                .stream().map(l -> toResponse(l, favIds)).toList();
+    }
+
+    @Override
+    public ListingResponse addFavorite(String email, String listingId) {
+        findListing(listingId);
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().addToSet("favoriteListingIds", listingId),
+                User.class);
+        User updated = getUser(email);
+        return toResponse(findListing(listingId), updated.getFavoriteListingIds());
+    }
+
+    @Override
+    public void removeFavorite(String email, String listingId) {
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().pull("favoriteListingIds", listingId),
+                User.class);
+    }
+
+    @Override
+    public void clearFavorites(String email) {
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().set("favoriteListingIds", new java.util.HashSet<>()),
+                User.class);
+    }
+
+    @Override
+    public List<ListingResponse> getFavorites(String email) {
+        User user = getUser(email);
+        Set<String> favIds = user.getFavoriteListingIds();
+        if (favIds.isEmpty()) return new ArrayList<>();
+        return listingRepository.findAllById(favIds)
+                .stream().map(l -> toResponse(l, favIds)).toList();
     }
 
     public ListingResponse uploadPhotos(String sellerEmail, String id, List<MultipartFile> files) {
@@ -180,8 +220,6 @@ public class ListingServiceImpl implements ListingService {
         return toResponse(listingRepository.save(listing));
     }
 
-    // --- helpers ---
-
     private User getUser(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
@@ -193,6 +231,10 @@ public class ListingServiceImpl implements ListingService {
     }
 
     private ListingResponse toResponse(Listing listing) {
+        return toResponse(listing, Set.of());
+    }
+
+    private ListingResponse toResponse(Listing listing, Set<String> favIds) {
         return ListingResponse.builder()
                 .id(listing.getId())
                 .title(listing.getTitle())
@@ -206,6 +248,7 @@ public class ListingServiceImpl implements ListingService {
                 .photoUrls(listing.getPhotoUrls() != null ? listing.getPhotoUrls() : new ArrayList<>())
                 .status(listing.getStatus())
                 .createdAt(listing.getCreatedAt())
+                .favorited(favIds != null && favIds.contains(listing.getId()))
                 .build();
     }
 }
