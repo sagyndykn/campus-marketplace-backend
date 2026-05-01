@@ -77,6 +77,12 @@ public class ListingController {
         return ResponseEntity.ok(listingService.getFavorites(email));
     }
 
+    @DeleteMapping("/favorites")
+    public ResponseEntity<Void> clearFavorites(@AuthenticationPrincipal String email) {
+        listingService.clearFavorites(email);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/favorite")
     public ResponseEntity<ListingResponse> addFavorite(
             @AuthenticationPrincipal String email, @PathVariable String id) {

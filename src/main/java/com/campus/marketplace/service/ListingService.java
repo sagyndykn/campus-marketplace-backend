@@ -30,5 +30,7 @@ public interface ListingService {
 
     void removeFavorite(String email, String listingId);
 
+    void clearFavorites(String email);
+
     java.util.List<ListingResponse> getFavorites(String email);
 }

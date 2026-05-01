@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -144,18 +145,29 @@ public class ListingServiceImpl implements ListingService {
 
     @Override
     public ListingResponse addFavorite(String email, String listingId) {
-        User user = getUser(email);
         findListing(listingId);
-        user.getFavoriteListingIds().add(listingId);
-        userRepository.save(user);
-        return toResponse(findListing(listingId), user.getFavoriteListingIds());
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().addToSet("favoriteListingIds", listingId),
+                User.class);
+        User updated = getUser(email);
+        return toResponse(findListing(listingId), updated.getFavoriteListingIds());
     }
 
     @Override
     public void removeFavorite(String email, String listingId) {
-        User user = getUser(email);
-        user.getFavoriteListingIds().remove(listingId);
-        userRepository.save(user);
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().pull("favoriteListingIds", listingId),
+                User.class);
+    }
+
+    @Override
+    public void clearFavorites(String email) {
+        mongoTemplate.updateFirst(
+                new Query(Criteria.where("email").is(email)),
+                new Update().set("favoriteListingIds", new java.util.HashSet<>()),
+                User.class);
     }
 
     @Override
