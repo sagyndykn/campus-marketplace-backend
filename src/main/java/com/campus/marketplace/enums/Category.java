@@ -8,5 +8,6 @@ public enum Category {
     SPORTS,
     BOOKS,
     GAMES,
-    OTHER
+    OTHER,
+    SDU
 }
