@@ -1,8 +1,11 @@
 package com.campus.marketplace.service.impl;
 
+import com.campus.marketplace.dto.request.ChangePasswordRequest;
+import com.campus.marketplace.dto.request.ForgotPasswordRequest;
 import com.campus.marketplace.dto.request.LoginRequest;
 import com.campus.marketplace.dto.request.RegisterRequest;
 import com.campus.marketplace.dto.request.ResendOtpRequest;
+import com.campus.marketplace.dto.request.ResetPasswordRequest;
 import com.campus.marketplace.dto.request.VerifyOtpRequest;
 import com.campus.marketplace.dto.response.AuthResponse;
 import com.campus.marketplace.enums.Role;
@@ -136,6 +139,46 @@ public class AuthServiceImpl implements AuthService {
         }
 
         otpService.generateAndSend(request.getEmail());
+    }
+
+    @Override
+    public AuthResponse verifyResetOtp(VerifyOtpRequest request) {
+        boolean valid = otpService.verifyReset(request.getEmail(), request.getOtp());
+        if (!valid) {
+            throw new RuntimeException("Неверный или истёкший код подтверждения");
+        }
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        return buildAuthResponse(user);
+    }
+
+    @Override
+    public void changePassword(String email, ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    @Override
+    public void forgotPassword(ForgotPasswordRequest request) {
+        userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Пользователь с таким email не найден"));
+        otpService.generateAndSendReset(request.getEmail());
+    }
+
+    @Override
+    public void resetPassword(ResetPasswordRequest request) {
+        boolean valid = otpService.verifyReset(request.getEmail(), request.getOtp());
+        if (!valid) {
+            throw new RuntimeException("Неверный или истёкший код подтверждения");
+        }
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 
     private AuthResponse buildAuthResponse(User user) {

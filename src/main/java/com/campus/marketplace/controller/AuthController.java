@@ -1,9 +1,12 @@
 package com.campus.marketplace.controller;
 
+import com.campus.marketplace.dto.request.ChangePasswordRequest;
+import com.campus.marketplace.dto.request.ForgotPasswordRequest;
 import com.campus.marketplace.dto.request.LoginRequest;
 import com.campus.marketplace.dto.request.RefreshRequest;
 import com.campus.marketplace.dto.request.RegisterRequest;
 import com.campus.marketplace.dto.request.ResendOtpRequest;
+import com.campus.marketplace.dto.request.ResetPasswordRequest;
 import com.campus.marketplace.dto.request.VerifyOtpRequest;
 import com.campus.marketplace.dto.response.AuthResponse;
 import com.campus.marketplace.service.AuthService;
@@ -11,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -45,6 +49,30 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshRequest request) {
         return ResponseEntity.ok(authService.refresh(request.getRefreshToken()));
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok("Код подтверждения отправлен на " + request.getEmail());
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok("Пароль успешно изменён");
+    }
+
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<AuthResponse> verifyResetOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyResetOtp(request));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@AuthenticationPrincipal String email,
+                                                 @Valid @RequestBody ChangePasswordRequest request) {
+        authService.changePassword(email, request);
+        return ResponseEntity.ok("Пароль успешно изменён");
     }
 
     @PostMapping("/logout")

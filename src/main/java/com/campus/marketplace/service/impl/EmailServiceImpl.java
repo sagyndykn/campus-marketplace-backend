@@ -14,6 +14,7 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Override
+    @Async
     public void sendOtp(String to, String otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -22,6 +23,21 @@ public class EmailServiceImpl implements EmailService {
                 "Ваш код подтверждения: " + otp + "\n\n" +
                         "Код действителен 2 минуты.\n" +
                         "Если вы не запрашивали код — проигнорируйте это письмо."
+        );
+        mailSender.send(message);
+    }
+
+    @Override
+    @Async
+    public void sendResetOtp(String to, String otp) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Campus Marketplace — сброс пароля");
+        message.setText(
+                "Вы запросили сброс пароля.\n\n" +
+                        "Ваш код подтверждения: " + otp + "\n\n" +
+                        "Код действителен 5 минут.\n" +
+                        "Если вы не запрашивали сброс пароля — проигнорируйте это письмо."
         );
         mailSender.send(message);
     }
