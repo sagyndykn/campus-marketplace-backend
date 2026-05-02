@@ -36,13 +36,17 @@ public class ListingController {
     public ResponseEntity<Page<ListingResponse>> getFeed(
             @AuthenticationPrincipal String email,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String categoryId,
+            @RequestParam(required = false) String sellerId,
+            @RequestParam(required = false) String excludeId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        String resolvedCategory = category != null && !category.isBlank() ? category : categoryId;
         return ResponseEntity.ok(
-                listingService.getFeed(email, category, search, minPrice, maxPrice, page, size));
+                listingService.getFeed(email, resolvedCategory, sellerId, excludeId, search, minPrice, maxPrice, page, size));
     }
 
     @GetMapping("/my")

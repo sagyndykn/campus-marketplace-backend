@@ -62,6 +62,8 @@ public class ListingServiceImpl implements ListingService {
     @Override
     public Page<ListingResponse> getFeed(String currentUserEmail,
                                          String category,
+                                         String sellerId,
+                                         String excludeId,
                                          String search,
                                          Double minPrice,
                                          Double maxPrice,
@@ -69,8 +71,17 @@ public class ListingServiceImpl implements ListingService {
                                          int size) {
         User currentUser = getUser(currentUserEmail);
 
-        Criteria criteria = Criteria.where("sellerId").ne(currentUser.getId())
-                .and("status").is(ListingStatus.ACTIVE);
+        Criteria criteria = Criteria.where("status").is(ListingStatus.ACTIVE);
+
+        if (sellerId != null && !sellerId.isBlank()) {
+            criteria = criteria.and("sellerId").is(sellerId);
+        } else {
+            criteria = criteria.and("sellerId").ne(currentUser.getId());
+        }
+
+        if (excludeId != null && !excludeId.isBlank()) {
+            criteria = criteria.and("_id").ne(excludeId);
+        }
 
         if (category != null && !category.isBlank()) {
             criteria = criteria.and("category").is(Category.valueOf(category));
