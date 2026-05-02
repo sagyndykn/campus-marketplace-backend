@@ -12,6 +12,8 @@ public interface ListingService {
 
     Page<ListingResponse> getFeed(String currentUserEmail,
                                   String category,
+                                  String sellerId,
+                                  String excludeId,
                                   String search,
                                   Double minPrice,
                                   Double maxPrice,
